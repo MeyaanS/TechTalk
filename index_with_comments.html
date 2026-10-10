@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haven demo</title>
+
+<style>
+  /* ---------- CSS: how the page looks ---------- */
+
+  /* Centered column of text */
+  body {
+    font-family: system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 700px;
+    margin: auto;
+    padding: 16px;
+    color: #12262B;
+  }
+
+  /* Buttons and text boxes share the same size and border */
+  button, input {
+    font: inherit;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 2px solid #1D5C57;
+    border-radius: 10px;
+  }
+
+  /* Buttons get a green background */
+  button {
+    background: #1D5C57;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  /* Blue ring when you tab to something with the keyboard */
+  :focus-visible {
+    outline: 3px solid #1A4FD6;
+    outline-offset: 3px;
+  }
+
+  /* The card that holds results */
+  .box {
+    border: 3px solid;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+
+  /* One background color per alert stage (0 = safe ... 3 = evacuate) */
+  .s0 { background: #E7F3EE; }
+  .s1 { background: #FFF4D6; }
+  .s2 { background: #FDE3E3; }
+  .s3 { background: #5B0F0F; color: white; }
+
+  /* Box that shows the official alert text */
+  pre {
+    white-space: pre-wrap;
+    background: white;
+    color: #12262B;
+    padding: 8px;
+    max-height: 220px;
+    overflow: auto;
+  }
+</style>
+</head>
+
+<body>
+<!-- ---------- HTML: what is on the page ---------- -->
+
+<h1>Haven</h1>
+<p>Turn official fire-weather alerts into clear steps for your household.</p>
+
+<!-- Inputs. The id lets JavaScript find each one. -->
+<p>
+  <label>ZIP code (US) <input id="zip" inputmode="numeric" maxlength="5" size="6"></label>
+  <label>Pets <input id="pets" type="number" min="0" value="0" style="width:5em"></label>
+  <button onclick="check()">Check my area</button>
+</p>
+
+<!-- Demo buttons: send 1, 2, or 3 to the check function -->
+<p>Demo only:
+  <button onclick="check(1)">Simulate Watch</button>
+  <button onclick="check(2)">Simulate Warning</button>
+  <button onclick="check(3)">Simulate Evacuation</button>
+</p>
+
+<!-- Empty box. JavaScript fills it with the results. -->
+<div id="out" aria-live="polite"></div>
+
+<hr>
+<p>Haven is a planning aid, not an official emergency service. In an emergency, call 911.</p>
+
+
+<script>
+  // ---------- JavaScript: what the page does ----------
+
+  // The heading for each stage. Position 0 is "no alert", position 3 is evacuation.
+  var titles = [
+    "✔ No alert",
+    "⚠ Stage 1: Fire Weather Watch",
+    "⚠⚠ Stage 2: Red Flag Warning",
+    "⛔ Stage 3: Evacuation"
+  ];
+
+  // Helper: makes a new HTML element, puts text in it, and adds it to the page.
+  // Example: addElement(box, "h2", "Hello") puts <h2>Hello</h2> inside box.
+  function addElement(parent, tagName, text) {
+    var element = document.createElement(tagName);
+    element.textContent = text;   // textContent keeps the text plain and safe
+    parent.appendChild(element);
+    return element;               // give it back so we can change it later
+  }
+
+  // Main function. Runs when a button is clicked.
+  // "sim" is 1, 2, or 3 for the demo buttons, and empty for a real check.
+  async function check(sim) {
+
+    // Step 1: find the page elements we need
+    var out = document.getElementById("out");
+    var zipBox = document.getElementById("zip");
+    var petsBox = document.getElementById("pets");
+
+    // Step 2: show a loading message
+    out.textContent = "Checking official sources...";
+
+    // Step 3: build the address to ask the server, like /api?zip=27601&pets=2
+    var query = new URLSearchParams();
+    query.set("zip", zipBox.value);
+    query.set("pets", petsBox.value);
+    if (sim) {
+      query.set("sim", sim);
+    }
+
+    // Step 4: ask the server for data. "await" means wait for the answer.
+    var data;
+    try {
+      var response = await fetch("/api?" + query);
+      data = await response.json();
+    } catch (error) {
+      // If the server could not be reached, use a "no data" answer instead
+      data = { ok: false, stage: 0, actions: [], alerts: [] };
+    }
+
+    // Step 5: clear the loading message and make the main result box
+    out.textContent = "";
+    var box = document.createElement("div");
+    box.className = "box s" + data.stage;   // for stage 2 this becomes "box s2"
+    out.appendChild(box);
+
+    // The heading for this stage
+    addElement(box, "h2", titles[data.stage]);
+
+    // If this is a demo, say so clearly
+    if (data.simulated) {
+      var demoNote = addElement(box, "p", "SIMULATED FOR DEMO. This is not a real alert.");
+      demoNote.style.fontWeight = "bold";
+    }
+
+    // If the data failed, say so (and never imply the person is safe)
+    if (!data.ok) {
+      addElement(box, "p", "Data unavailable. We could not reach the weather service or find that ZIP code. This does NOT mean you are safe.");
+    } else if (data.stage == 0) {
+      addElement(box, "p", "No fire weather watch or warning for " + data.place + " right now.");
+    }
+
+    // Step 6: show the list of actions, if there are any
+    if (data.actions.length > 0) {
+      addElement(box, "h3", "Do these first");
+      var list = addElement(box, "ol", "");
+      for (var i = 0; i < data.actions.length; i++) {
+        addElement(list, "li", data.actions[i]);
+      }
+    }
+
+    // Step 7: show each official alert exactly as the weather service wrote it
+    for (var j = 0; j < data.alerts.length; j++) {
+      var alert = data.alerts[j];
+
+      var card = addElement(out, "div", "");
+      card.className = "box";
+
+      addElement(card, "b", alert.event);
+
+      // If there is no expiry time, show "n/a"
+      var expires = alert.expires || "n/a";
+      addElement(card, "p", "Expires " + expires + " · Source: " + alert.senderName + " via api.weather.gov");
+
+      addElement(card, "pre", alert.description);
+    }
+
+    // Step 8: credit the data source
+    if (data.ok) {
+      addElement(out, "p", "Source: National Weather Service (api.weather.gov), checked " + data.time + ".");
+    }
+  }
+</script>
+</body>
+</html>

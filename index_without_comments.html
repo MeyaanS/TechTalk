@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haven demo</title>
+<style>
+  body{font:18px/1.6 system-ui,sans-serif;max-width:700px;margin:auto;padding:16px;color:#12262B}
+  button,input{font:inherit;min-height:48px;padding:0 16px;border:2px solid #1D5C57;border-radius:10px}
+  button{background:#1D5C57;color:#fff;font-weight:700;cursor:pointer}
+  :focus-visible{outline:3px solid #1A4FD6;outline-offset:3px}
+  .box{border:3px solid;border-radius:12px;padding:16px;margin:12px 0}
+  .s0{background:#E7F3EE}.s1{background:#FFF4D6}.s2{background:#FDE3E3}.s3{background:#5B0F0F;color:#fff}
+  pre{white-space:pre-wrap;background:#fff;color:#12262B;padding:8px;max-height:220px;overflow:auto}
+</style>
+
+<h1>Haven</h1>
+<p>Turn official fire-weather alerts into clear steps for your household.</p>
+<p>
+  <label>ZIP code (US) <input id="zip" inputmode="numeric" maxlength="5" size="6"></label>
+  <label>Pets <input id="pets" type="number" min="0" value="0" style="width:5em"></label>
+  <button onclick="check()">Check my area</button>
+</p>
+<p>Demo only:
+  <button onclick="check(1)">Simulate Watch</button>
+  <button onclick="check(2)">Simulate Warning</button>
+  <button onclick="check(3)">Simulate Evacuation</button>
+</p>
+<div id="out" aria-live="polite"></div>
+<hr>
+<p>Haven is a planning aid, not an official emergency service. In an emergency, call 911.</p>
+
+<script>
+const TITLE = ["✔ No alert", "⚠ Stage 1: Fire Weather Watch", "⚠⚠ Stage 2: Red Flag Warning", "⛔ Stage 3: Evacuation"];
+const add = (parent, tag, text) => { const e = document.createElement(tag); e.textContent = text; parent.append(e); return e; };
+
+async function check(sim) {
+  const out = document.getElementById("out");
+  out.textContent = "Checking official sources...";
+  const q = new URLSearchParams({ zip: zip.value, pets: pets.value });
+  if (sim) q.set("sim", sim);
+  const d = await (await fetch("/api?" + q)).json();
+
+  out.textContent = "";
+  const box = document.createElement("div");
+  box.className = "box s" + d.stage;
+  out.append(box);
+  add(box, "h2", TITLE[d.stage]);
+  if (d.simulated) add(box, "p", "SIMULATED FOR DEMO. This is not a real alert.").style.fontWeight = "700";
+  if (!d.ok) add(box, "p", "Data unavailable. We could not reach the weather service or find that ZIP code. This does NOT mean you are safe.");
+  else if (!d.stage) add(box, "p", "No fire weather watch or warning for " + d.place + " right now.");
+
+  if (d.actions.length) {
+    add(box, "h3", "Do these first");
+    const ol = add(box, "ol", "");
+    d.actions.forEach(a => add(ol, "li", a));
+  }
+  d.alerts.forEach(a => {                       // official text, shown as issued
+    const c = add(out, "div", ""); c.className = "box";
+    add(c, "b", a.event);
+    add(c, "p", "Expires " + (a.expires || "n/a") + " · Source: " + a.senderName + " via api.weather.gov");
+    add(c, "pre", a.description);
+  });
+  if (d.ok) add(out, "p", "Source: National Weather Service (api.weather.gov), checked " + d.time + ".");
+}
+</script>
+</html>
