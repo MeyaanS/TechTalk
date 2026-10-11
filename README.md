@@ -1,4 +1,4 @@
-## <img width="1075" height="480" alt="image" src="https://github.com/user-attachments/assets/5aca6292-2c33-4309-a4e6-93bd0642846b" /># TechTalk Hackathon
+## Haven
 # Download all files then run the index_with_comments.html.
 
 To run it
