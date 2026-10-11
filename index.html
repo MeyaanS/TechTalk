@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Haven demo</title>
+
+<style>
+  /* ---------- CSS: how the page looks ---------- */
+
+  /* Centered column of text */
+  body {
+    font-family: system-ui, sans-serif;
+    font-size: 18px;
+    line-height: 1.6;
+    max-width: 700px;
+    margin: auto;
+    padding: 16px;
+    color: #12262B;
+  }
+
+  /* Buttons and text boxes share the same size and border */
+  button, input {
+    font: inherit;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 2px solid #1D5C57;
+    border-radius: 10px;
+  }
+
+  /* Buttons get a green background */
+  button {
+    background: #1D5C57;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  /* Blue ring when you tab to something with the keyboard */
+  :focus-visible {
+    outline: 3px solid #1A4FD6;
+    outline-offset: 3px;
+  }
+
+  /* The card that holds results */
+  .box {
+    border: 3px solid;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0;
+  }
+
+  /* One background color per alert stage (0 = safe ... 3 = evacuate) */
+  .s0 { background: #E7F3EE; }
+  .s1 { background: #FFF4D6; }
+  .s2 { background: #FDE3E3; }
+  .s3 { background: #5B0F0F; color: white; }
+
+  /* Box that shows the official alert text */
+  pre {
+    white-space: pre-wrap;
+    background: white;
+    color: #12262B;
+    padding: 8px;
+    max-height: 220px;
+    overflow: auto;
+  }
+</style>
+</head>
+
+<body>
+<!-- ---------- HTML: what is on the page ---------- -->
+
+<h1>Haven</h1>
+<p>Turn official fire-weather alerts into clear steps for your household.</p>
+
+<!-- Inputs. The id lets JavaScript find each one. -->
+<p>
+  <label>ZIP code (US) <input id="zip" inputmode="numeric" maxlength="5" size="6"></label>
+  <label>Pets <input id="pets" type="number" min="0" value="0" style="width:5em"></label>
+  <button onclick="check()">Check my area</button>
+</p>
+
+<!-- Demo buttons: send 1, 2, or 3 to the check function -->
+<p>Demo only:
+  <button onclick="check(1)">Simulate Watch</button>
+  <button onclick="check(2)">Simulate Warning</button>
+  <button onclick="check(3)">Simulate Evacuation</button>
+</p>
+
+<!-- Empty box. JavaScript fills it with the results. -->
+<div id="out" aria-live="polite"></div>
+
+<hr>
+<p>Haven is a planning aid, not an official emergency service. In an emergency, call 911.</p>
+
+<!-- The JavaScript now lives in its own file (Haven.py serves it at /vfx.js) -->
+<script src="vfx.js"></script>
+</body>
+</html>

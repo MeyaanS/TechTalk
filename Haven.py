@@ -22,7 +22,8 @@ def build_engine():
          exit()
 
 def get_json(url):
-    with urllib.request.urlopen(url, timeout=10) as response:
+    request = urllib.request.Request(url, headers={"User-Agent": "Haven demo (" + EMAIL + ")"})
+    with urllib.request.urlopen(request, timeout=10) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
@@ -71,8 +72,12 @@ def make_answer(query):
     for a in answer["alerts"]:
         names = names + a["event"] + "|"
     result = subprocess.run([engine, names, pets, force], capture_output=True, text=True)
-    answer.update(json.loads(result.stdout))
-    return answer 
+    try:
+        answer.update(json.loads(result.stdout))
+    except Exception:
+        answer.update({"ok": False, "stage": 0, "actions": []})
+    return answer
+
 
 class MyHandler(BaseHTTPRequestHandler):
     def send_data(self, body, kind):
@@ -93,8 +98,17 @@ class MyHandler(BaseHTTPRequestHandler):
             self.send_data(json.dumps(answer).encode(), "application/json")
         elif url.path == "/" or url.path == "/index.html":
             self.send_file("index.html", "text/html")
-        elif url.path == "/app.js":
-            self.send_file("app.js", "application/javascript")
+        elif url.path == "/vfx.js":
+            self.send_file("vfx.js", "application/javascript")
         else:
             self.send_error(404)
-    
+
+
+if __name__ == "__main__":
+    build_engine()
+    server = ThreadingHTTPServer(("", 8000), MyHandler)
+    print("Haven is running at http://localhost:8000  (press Ctrl+C to stop)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("Stopped.")

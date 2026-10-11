@@ -1,8 +1,8 @@
 const TITLE = [
-  "No alert",
-  "Stage 1: Fire Weather Watch",
-  "Stage 2: Red Flag Warning",
-  "Stage 3: Evacuation"
+  "✔ No alert",
+  "⚠ Stage 1: Fire Weather Watch",
+  "⚠⚠ Stage 2: Red Flag Warning",
+  "⛔ Stage 3: Evacuation"
 ];
 
 function add(parent, tag, text = "") {
